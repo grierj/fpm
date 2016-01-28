@@ -150,6 +150,9 @@ class FPM::Command < Clamp::Command
     "The path to a file containing a newline-sparated list of "\
     "patterns to exclude from input."
 
+  option "--exclude-empty-directories", :flag,
+    "Remove all empty directories before packaging.", :default => false
+
   option "--description", "DESCRIPTION", "Add a description for this package." \
     " You can include '\\n' sequences to indicate newline breaks.",
     :default => "no description"

@@ -363,7 +363,7 @@ class FPM::Package
   # This method removes excluded files from the staging_path. Subclasses can
   # remove the files during the input phase rather than deleting them here
   def exclude
-    return if attributes[:excludes].nil?
+    return if attributes[:excludes].nil? && attributes[:exclude_empty_directories?].nil?
 
     if @attributes.include?(:prefix)
       installdir = staging_path(@attributes[:prefix])
@@ -371,10 +371,23 @@ class FPM::Package
       installdir = staging_path
     end
 
+
     Find.find(installdir) do |path|
+      # This is a somewhat dangerous manuever, but when you absolutely want to blow
+      # away all empty diretories before packaging up (RHEL/CentOS are particularly
+      # cranky about directory owndership) this'll do it.
+      if attributes[:exclude_empty_directories?]
+        if File.directory?(path) && ::Dir.entries(path).sort == [".", ".."]
+          logger.info("Removing empty directory", :path => path)
+          FileUtils.rm_r(path)
+          Find.prune
+          next
+        end
+      end
+
       match_path = path.sub("#{installdir.chomp('/')}/", '')
 
-      attributes[:excludes].each do |wildcard|
+      (attributes[:excludes] || []).each do |wildcard|
         logger.debug("Checking path against wildcard", :path => match_path, :wildcard => wildcard)
 
         if File.fnmatch(wildcard, match_path)
